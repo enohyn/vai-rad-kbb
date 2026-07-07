@@ -192,12 +192,18 @@ backend/
 │   ├── accounts/           # User model + JWT auth endpoints
 │   ├── tasks/              # Kanban task CRUD + date filtering
 │   └── annotations/        # Image upload + polygon CRUD
-├── conftest.py             # Shared pytest fixtures
 ├── manage.py
-├── pytest.ini
+├── pytest.ini              # Points at ../kbb-tests/ (see Testing section)
 ├── requirements.txt
 ├── runtime.txt             # Python version for hosting
 └── .env.example
+
+# Tests live in a sibling folder, not inside the app packages:
+../kbb-tests/
+├── conftest.py             # Shared pytest fixtures
+├── accounts/               # test_api.py, test_models.py
+├── tasks/                  # test_api.py, test_models.py
+└── annotations/            # test_api.py, test_models.py
 ```
 
 ---
@@ -223,19 +229,23 @@ backend/
 
 ## 🧪 Testing Strategy (TDD)
 
-Tests were written **first** (or alongside) implementation. Run:
+Tests were written **first** (or alongside) implementation.
+
+> **Note:** Tests live in a **sibling folder** (`../kbb-tests/`), not inside the
+> Django app packages. `pytest.ini` points at that folder, so you still run pytest
+> from the backend project root:
 
 ```bash
-pytest -v
+pytest -q          # run from vai-rad-kbb/
 ```
 
-Coverage by app:
+Coverage by app (30 tests total):
 - `accounts`: register/login/me/logout + model behavior (16 tests)
 - `tasks`: create/list/filter-by-date/isolation/drag-drop/delete + model (9 tests)
 - `annotations`: upload/list/polygon create/delete + model (5 tests)
 
 Shared fixtures (`api_client`, `user_factory`, `task_factory`, `image_factory`,
-`png_upload`) live in `conftest.py`.
+`png_upload`) live in `kbb-tests/conftest.py`.
 
 ---
 

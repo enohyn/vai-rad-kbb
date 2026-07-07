@@ -1,1 +1,0 @@
-# annotations tests package
