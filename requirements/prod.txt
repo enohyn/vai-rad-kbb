@@ -1,0 +1,4 @@
+# Production dependencies: runtime + WSGI server
+-r base.txt
+
+gunicorn==22.0.0              # WSGI HTTP server (used on Render; PythonAnywhere uses its own WSGI)

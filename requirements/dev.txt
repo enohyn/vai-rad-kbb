@@ -1,0 +1,12 @@
+# Dev dependencies: extends runtime + adds testing + linting tools
+-r base.txt
+
+# Testing
+pytest==8.3.1                 # Test runner (like Jest)
+pytest-django==4.8.0          # Django integration for pytest
+factory-boy==3.3.0            # Test data factories (like @faker + fixtures)
+
+# Linting / formatting
+black==24.4.2                 # Code formatter (like Prettier)
+ruff==0.5.1                   # Fast linter (like ESLint)
+isort==5.13.2                 # Sort imports

@@ -1,0 +1,2 @@
+# Convenience pointer for hosts (e.g. PythonAnywhere) that expect a single file.
+-r requirements/prod.txt
