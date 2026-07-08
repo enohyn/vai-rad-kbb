@@ -193,13 +193,13 @@ backend/
 │   ├── tasks/              # Kanban task CRUD + date filtering
 │   └── annotations/        # Image upload + polygon CRUD
 ├── manage.py
-├── pytest.ini              # Points at ../kbb-tests/ (see Testing section)
+├── pytest.ini              # Points at tests/ folder (see Testing section)
 ├── requirements.txt
 ├── runtime.txt             # Python version for hosting
 └── .env.example
 
-# Tests live in a sibling folder, not inside the app packages:
-../kbb-tests/
+# Tests live inside the repo (not inside app packages):
+tests/
 ├── conftest.py             # Shared pytest fixtures
 ├── accounts/               # test_api.py, test_models.py
 ├── tasks/                  # test_api.py, test_models.py
@@ -231,12 +231,12 @@ backend/
 
 Tests were written **first** (or alongside) implementation.
 
-> **Note:** Tests live in a **sibling folder** (`../kbb-tests/`), not inside the
-> Django app packages. `pytest.ini` points at that folder, so you still run pytest
+> **Note:** Tests live in a `tests/` folder inside the repo (not inside the
+> Django app packages). `pytest.ini` points at that folder, so you just run pytest
 > from the backend project root:
 
 ```bash
-pytest -q          # run from vai-rad-kbb/
+pytest -q
 ```
 
 Coverage by app (30 tests total):
@@ -245,7 +245,7 @@ Coverage by app (30 tests total):
 - `annotations`: upload/list/polygon create/delete + model (5 tests)
 
 Shared fixtures (`api_client`, `user_factory`, `task_factory`, `image_factory`,
-`png_upload`) live in `kbb-tests/conftest.py`.
+`png_upload`) live in `tests/conftest.py`.
 
 ---
 
