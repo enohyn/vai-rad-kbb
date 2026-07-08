@@ -145,6 +145,18 @@ STATIC_ROOT = BASE_DIR / "staticfiles"  # `collectstatic` outputs here for prod
 MEDIA_URL = "media/"  # URL prefix for uploaded images
 MEDIA_ROOT = BASE_DIR / "media"  # filesystem folder where uploads are stored
 
+# WhiteNoise: serve compressed static files in production (no nginx needed).
+# In dev Django's default staticfiles storage is used (DEBUG=True serves them).
+if not DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
