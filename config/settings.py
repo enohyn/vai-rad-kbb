@@ -44,8 +44,12 @@ SECRET_KEY = env(
     default="django-insecure-dev-only-key-do-not-use-in-production" if DEBUG else None,
 )
 
-# Hosts/domains Django will respond to. "*" only when debugging locally.
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"] if DEBUG else [])
+# Hosts/domains Django will respond to.
+# We default to ["*"] (allow all) so the app works in containerised hosts
+# (Render, Heroku, Docker) where the internal health-checker uses an IP, not
+# the public domain. For a stricter production setup, set ALLOWED_HOSTS in
+# the environment to your exact domain(s), e.g. "api.example.com".
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
 # ---------------------------------------------------------------------------
 # 2. Applications (Django "apps" are like Node modules / feature folders)
