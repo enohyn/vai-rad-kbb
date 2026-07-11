@@ -4,52 +4,9 @@ The backend API for a 2-in-1 web app: a **date-based Kanban board** and an
 **image polygon-annotation tool**. Built with **Django + Django REST Framework**,
 **SimpleJWT** auth, and **SQLite** (Postgres-compatible) via the Django ORM.
 
-> This README follows the task's storytelling theme: the *"villains"* are the
-> hard problems we hit and how we defeated them.
-
 ---
 
-## 🥷 The Villains We Faced (and How We Won)
-
-### 🦹 Villain #1 — "Auth-token amnesia" (JWT logout that actually logs out)
-**The problem:** With pure JWT, a refresh token stays valid until it expires. A
-"logout" button that doesn't invalidate the token is theatre.
-
-**The fix:** We enabled `rest_framework_simplejwt.token_blacklist`. On logout we
-add the refresh token to a server-side blacklist (`OutstandingToken` /
-`BlacklistedToken` tables). Rotated refresh tokens are blacklisted automatically.
-*Power of friendship:* the [SimpleJWT docs](https://django-rest-framework-simplejwt.readthedocs.io/).
-
-### 🦹‍♂️ Villain #2 — "The sneaky serializer" (data leakage)
-**The problem:** A naive `User` serializer could echo `password` back in JSON.
-
-**The fix:** `RegisterSerializer` uses `write_only=True` on the password field
-and `validate_password` to run Django's password validators. There is a dedicated
-unit test asserting `"password" not in response.data`.
-
-### 🧟 Villain #3 — "Cross-tenant contamination"
-**The problem:** User A must never see User B's tasks/images.
-
-**The fix:** Every viewset overrides `get_queryset()` to filter by
-`request.user`. Tests prove isolation (`test_isolation_between_users`).
-
-### 👹 Villain #4 — "Pagination vs the Kanban"
-**The problem:** DRF's default `PageNumberPagination` wraps lists in
-`{count, next, results}`. A Kanban board for a *single date* wants a flat array.
-
-**The fix:** Removed global pagination; each list endpoint returns the full,
-already-scoped set. Tests assert `len(r.data) == N` (a list, not a dict).
-
-### 🐉 Villain #5 — "The disappearing filename"
-**The problem:** `ImageField` renames files to `annotations/xyz.png`; the
-frontend wanted the *original* filename.
-
-**The fix:** `AnnotatedImage.save()` auto-populates `original_filename` from the
-uploaded file's basename if not set explicitly.
-
----
-
-## 🧰 Tech Stack & Versions
+## 🧰 Tech Stack
 
 | Tool | Version |
 |------|---------|
@@ -64,15 +21,12 @@ uploaded file's basename if not set explicitly.
 | whitenoise | **6.7.x** (static files in prod) |
 | pytest / pytest-django | **8.x / 4.x** |
 
-Node version is only relevant for the **frontend** repo — this backend is pure
-Python.
-
 ---
 
-## 🚀 Run Locally (Detailed Steps)
+## 🚀 Run Locally
 
 ### Prerequisites
-- Python **3.12** installed (`python --version`)
+- Python **3.12** (`python --version`)
 - `pip` and `venv`
 
 ### 1. Clone & enter
@@ -101,7 +55,6 @@ pip install -r requirements.txt
 ```
 
 ### 4. Configure environment
-Copy the example and (optionally) edit values:
 ```bash
 cp .env.example .env
 ```
@@ -121,11 +74,11 @@ REFRESH_TOKEN_DAYS=7
 python manage.py migrate
 python manage.py seed_demo_user
 ```
-This creates the login user recruiters will use:
+This creates a demo login:
 - **Email:** `demo@kanban.test`
 - **Password:** `demoPass123!`
 
-### 6. Run the tests (TDD ✅)
+### 6. Run the tests
 ```bash
 pytest -q
 ```
@@ -162,7 +115,7 @@ Authorization: Bearer <access-token>
 | PATCH | `/:id/` | Update (used by drag-and-drop: `{status, position}`) |
 | DELETE | `/:id/` | Remove a task |
 
-Fields: `title`, `description`, `priority` (low/medium/high/urgent),
+Fields: `title`, `description`, `priority` (low/medium/high),
 `status` (todo/in_progress/done), `due_date`, `tags` (JSON array),
 `position` (float, for DnD ordering).
 
@@ -180,6 +133,18 @@ Fields: `title`, `description`, `priority` (low/medium/high/urgent),
 
 ---
 
+## 🔒 Security Notes
+
+- **JWT logout:** Refresh tokens are added to a server-side blacklist
+  (`rest_framework_simplejwt.token_blacklist`) on logout, so tokens are
+  actually invalidated rather than just discarded client-side.
+- **Password handling:** The `User` serializer marks `password` as
+  `write_only`, so it is never included in API responses.
+- **Row-level isolation:** Every viewset filters by `request.user`, so
+  users can only access their own tasks and images.
+
+---
+
 ## 🗂️ Project Structure
 
 ```
@@ -193,12 +158,11 @@ backend/
 │   ├── tasks/              # Kanban task CRUD + date filtering
 │   └── annotations/        # Image upload + polygon CRUD
 ├── manage.py
-├── pytest.ini              # Points at tests/ folder (see Testing section)
+├── pytest.ini              # Points at tests/ folder
 ├── requirements.txt
 ├── runtime.txt             # Python version for hosting
 └── .env.example
 
-# Tests live inside the repo (not inside app packages):
 tests/
 ├── conftest.py             # Shared pytest fixtures
 ├── accounts/               # test_api.py, test_models.py
@@ -227,17 +191,14 @@ tests/
 
 ---
 
-## 🧪 Testing Strategy (TDD)
-
-Tests were written **first** (or alongside) implementation.
-
-> **Note:** Tests live in a `tests/` folder inside the repo (not inside the
-> Django app packages). `pytest.ini` points at that folder, so you just run pytest
-> from the backend project root:
+## 🧪 Testing
 
 ```bash
 pytest -q
 ```
+
+Tests live in a `tests/` folder inside the repo. `pytest.ini` points at that
+folder, so you run pytest from the project root.
 
 Coverage by app (30 tests total):
 - `accounts`: register/login/me/logout + model behavior (16 tests)
@@ -246,11 +207,3 @@ Coverage by app (30 tests total):
 
 Shared fixtures (`api_client`, `user_factory`, `task_factory`, `image_factory`,
 `png_upload`) live in `tests/conftest.py`.
-
----
-
-## 📝 License & Credits
-
-Built as a recruitment test task. The "power of friendship" came from the
-official Django, DRF, and SimpleJWT documentation, plus Pillow for image
-validation.

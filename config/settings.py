@@ -1,118 +1,56 @@
 """
 Django settings for the Kanban + Annotation backend.
-
-WHY THIS FILE EXISTS
---------------------
-In Django, ``settings.py`` is the single configuration hub — like a combined
-``.env`` loader + ``app.js`` + middleware pipeline in an Express app. Every
-constant here is read by Django at startup to wire the database, auth, apps,
-CORS, file storage, etc.
-
-We read sensitive values from a ``.env`` file via ``django-environ`` so that
-no secrets live in source control (the "12-factor app" methodology).
 """
 
-# ---------------------------------------------------------------------------
-# 0. Imports & path setup
-# ---------------------------------------------------------------------------
-from datetime import timedelta  # built-in: used to express JWT token lifetimes
-from pathlib import Path  # built-in: object-oriented filesystem paths
+from datetime import timedelta
+from pathlib import Path
 
-import environ  # third-party: django-environ, reads .env into a dict-like API
+import environ
 
-# BASE_DIR = the project root (the folder containing manage.py).
-# Path(__file__) = this settings.py file; .resolve().parent.parent walks up twice:
-# settings.py -> config/ -> project root.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ---------------------------------------------------------------------------
-# 1. Environment variables (.env)
-# ---------------------------------------------------------------------------
-# env.read_env() loads the .env file at the project root into os.environ.
-# If .env is missing (e.g. on a fresh clone), environ falls back to real env
-# vars, so we also provide safe DEBUG-based defaults below.
+# Environment
 env = environ.Env()
-# Read .env if present (local dev). On Render/Heroku there is no .env file,
-# so we silently fall back to real environment variables. Without this guard,
-# a missing .env would crash settings.py during deploy.
 try:
     env.read_env(str(BASE_DIR / ".env"))
 except Exception:
     pass
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# In JS land this is like process.env.SECRET_KEY; we default to an insecure
-# dev key only when DEBUG is True so production never accidentally starts
-# without a real key.
 DEBUG = env.bool("DEBUG", default=False)
 SECRET_KEY = env(
     "SECRET_KEY",
     default="django-insecure-dev-only-key-do-not-use-in-production" if DEBUG else None,
 )
 
-# Hosts/domains Django will respond to.
-# We default to ["*"] (allow all) so the app works in containerised hosts
-# (Render, Heroku, Docker) where the internal health-checker uses an IP, not
-# the public domain. For a stricter production setup, set ALLOWED_HOSTS in
-# the environment to your exact domain(s), e.g. "api.example.com".
-#
-# On PythonAnywhere, set ALLOWED_HOSTS in .env to your real domain, e.g.
-# ALLOWED_HOSTS=<username>.pythonanywhere.com
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+# Django 4.0+ requires scheme-prefixed origins (e.g. https://example.com).
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
-# Origins trusted for unsafe (POST/PUT/DELETE) CSRF-protected requests.
-# Defaults to wildcard so containerised hosts (Render, Heroku, Docker) and
-# internal health-checkers (which call via an IP) keep working out of the box.
-# On PythonAnywhere, set this to your real domain in .env, e.g.
-# CSRF_TRUSTED_ORIGINS=https://<username>.pythonanywhere.com
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["*"])
-
-# Print actual runtime values to Render logs so we can verify what Django
-# actually loaded. Helps diagnose any remaining 400 issues.
-import sys  # noqa: E402
-print("=" * 60, file=sys.stderr)
-print("STARTUP DIAGNOSTICS", file=sys.stderr)
-print(f"  DEBUG          = {DEBUG}", file=sys.stderr)
-print(f"  ALLOWED_HOSTS  = {ALLOWED_HOSTS}", file=sys.stderr)
-print(f"  SECRET_KEY set = {bool(SECRET_KEY)}", file=sys.stderr)
-print(f"  DATABASE       = {env.str('DATABASE_URL', default='(sqlite fallback)')}", file=sys.stderr)
-print("=" * 60, file=sys.stderr)
-
-# ---------------------------------------------------------------------------
-# 2. Applications (Django "apps" are like Node modules / feature folders)
-# ---------------------------------------------------------------------------
+# Applications
 INSTALLED_APPS = [
-    # Django built-ins (like node_modules shipped with the framework)
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Third-party
-    "rest_framework",  # DRF: serializers, viewsets, browsable API
-    "rest_framework_simplejwt.token_blacklist",  # lets us invalidate refresh tokens on logout
-    "corsheaders",  # Cross-Origin Resource Sharing for the Next.js frontend
-    "django_filters",  # declarative filtering (?date=...)
-    # Our local apps (created under apps/)
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+    "corsheaders",
+    "django_filters",
     "apps.accounts",
     "apps.tasks",
     "apps.annotations",
 ]
 
-# Tell Django to use OUR custom User model (email-based) instead of the
-# default username-based one. MUST be set BEFORE the first migrate.
 AUTH_USER_MODEL = "accounts.User"
 
-# ---------------------------------------------------------------------------
-# 3. Middleware (request/response pipeline; like Express middleware chain)
-# ---------------------------------------------------------------------------
+# Middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Serve static files in production without a reverse proxy.
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",  # must sit above CommonMiddleware
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -120,7 +58,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "config.urls"  # which urls.py is the root router
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -138,20 +76,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"  # entry point for servers (gunicorn, PythonAnywhere)
+WSGI_APPLICATION = "config.wsgi.application"
 
-# ---------------------------------------------------------------------------
-# 4. Database (default SQLite for dev; DATABASE_URL can point to Postgres)
-# ---------------------------------------------------------------------------
-# environ's db() helper parses a URL like "sqlite:///db.sqlite3" or
-# "postgres://user:pass@host:5432/db" into the dict Django expects.
+# Database
 DATABASES = {
     "default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3"),
 }
 
-# ---------------------------------------------------------------------------
-# 5. Password validation (run on signup + password change)
-# ---------------------------------------------------------------------------
+# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -159,25 +91,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ---------------------------------------------------------------------------
-# 6. Internationalization
-# ---------------------------------------------------------------------------
+# Internationalization
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# ---------------------------------------------------------------------------
-# 7. Static & media files
-# ---------------------------------------------------------------------------
+# Static & media files
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"  # `collectstatic` outputs here for prod
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "media/"  # URL prefix for uploaded images
-MEDIA_ROOT = BASE_DIR / "media"  # filesystem folder where uploads are stored
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
-# WhiteNoise: serve compressed static files in production (no nginx needed).
-# In dev Django's default staticfiles storage is used (DEBUG=True serves them).
 if not DEBUG:
     STORAGES = {
         "default": {
@@ -190,12 +116,7 @@ if not DEBUG:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ---------------------------------------------------------------------------
-# 8. Django REST Framework global config
-# ---------------------------------------------------------------------------
-# These defaults are applied to EVERY DRF view unless overridden.
-# - Authentication: JSON Web Tokens (Bearer token in the Authorization header).
-# - Permissions: a user must be authenticated by default.
+# Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -206,38 +127,26 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
     ),
-    # No global pagination: a Kanban board needs all tasks/images for the
-    # selected scope (a single date) in one response. Per-view pagination can
-    # still be added later if lists grow large.
 }
 
-# ---------------------------------------------------------------------------
-# 9. SimpleJWT settings (token lifetimes + claim customization)
-# ---------------------------------------------------------------------------
+# SimpleJWT
 SIMPLE_JWT = {
-    # Access tokens are short-lived (minutes) — limits damage if leaked.
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=env.int("ACCESS_TOKEN_MINUTES", default=15)
     ),
-    # Refresh tokens are long-lived (days) — used to get a new access token.
     "REFRESH_TOKEN_LIFETIME": timedelta(
         days=env.int("REFRESH_TOKEN_DAYS", default=7)
     ),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    # The login field on our custom User model is "email", not "username".
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# ---------------------------------------------------------------------------
-# 10. CORS — which origins may call this API from a browser
-# ---------------------------------------------------------------------------
-# In dev the Next.js app runs on http://localhost:3000.
+# CORS
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=["http://localhost:3000"],
 )
-# Allow cookies / Authorization headers through CORS.
 CORS_ALLOW_CREDENTIALS = True

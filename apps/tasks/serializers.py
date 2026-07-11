@@ -6,11 +6,7 @@ from .models import Task
 
 
 class TaskSerializer(serializers.ModelSerializer):
-    """Converts Task <-> JSON and enforces validation.
-
-    The `user` field is read-only because it is inferred from the JWT of the
-    request, never trusted from the payload (security: prevents IDOR).
-    """
+    """Task serializer; `user` is read-only (set from the JWT)."""
 
     class Meta:
         model = Task
@@ -30,7 +26,6 @@ class TaskSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "created_at", "updated_at"]
 
     def validate_tags(self, value):
-        """Ensure tags is a list of strings."""
         if not isinstance(value, list):
             raise serializers.ValidationError("tags must be a list.")
         if not all(isinstance(t, str) for t in value):

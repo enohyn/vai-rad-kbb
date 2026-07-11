@@ -1,9 +1,4 @@
-"""
-Models for the annotations app.
-
-An AnnotatedImage is an uploaded picture belonging to a user.
-A Polygon is one shape drawn on top of that image (a list of x/y points).
-"""
+"""Models for the annotations app."""
 
 from django.conf import settings
 from django.db import models
@@ -17,7 +12,6 @@ class AnnotatedImage(models.Model):
         on_delete=models.CASCADE,
         related_name="images",
     )
-    # ImageField stores a path; the file itself lives in MEDIA_ROOT.
     image = models.ImageField(upload_to="annotations/")
     original_filename = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -28,8 +22,6 @@ class AnnotatedImage(models.Model):
         db_table = "annotated_images"
 
     def save(self, *args, **kwargs):
-        # Auto-populate original_filename from the uploaded file's name if it
-        # wasn't set explicitly (keeps ORM-level creates consistent with the API).
         if not self.original_filename and self.image:
             self.original_filename = self.image.name.rsplit("/", 1)[-1]
         super().save(*args, **kwargs)
@@ -39,11 +31,9 @@ class AnnotatedImage(models.Model):
 
 
 class Polygon(models.Model):
-    """A single polygon annotation on an image.
+    """A polygon annotation on an image.
 
-    points is a JSON list of [x, y] coordinate pairs in image-pixel space,
-    e.g. [[10, 20], [30, 40], [50, 60]]. Stored as JSONField for portability
-    across SQLite/Postgres and easy consumption by the canvas frontend.
+    ``points`` is a JSON list of ``[x, y]`` pixel coordinate pairs.
     """
 
     image = models.ForeignKey(
@@ -53,7 +43,7 @@ class Polygon(models.Model):
     )
     label = models.CharField(max_length=80, blank=True)
     points = models.JSONField()
-    color = models.CharField(max_length=9, default="#ff0000")  # #RRGGBB
+    color = models.CharField(max_length=9, default="#ff0000")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

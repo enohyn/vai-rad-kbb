@@ -1,12 +1,4 @@
-"""
-A custom Django management command to create a demo user.
-
-Run with:  python manage.py seed_demo_user
-It is idempotent: if the user already exists, it just prints a message.
-
-Defaults can be overridden via environment variables (DEMO_EMAIL,
-DEMO_PASSWORD, DEMO_FIRST_NAME, DEMO_LAST_NAME) or CLI flags.
-"""
+"""Create a demo user. Usage: python manage.py seed_demo_user (idempotent)."""
 
 import os
 
@@ -17,10 +9,9 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = "Create (or confirm) the demo/login user for recruiters."
+    help = "Create (or confirm) the demo/login user."
 
     def add_arguments(self, parser):
-        # CLI flags override env vars, which override the hardcoded defaults.
         parser.add_argument(
             "--email",
             default=os.environ.get("DEMO_EMAIL", "demo@kanban.test"),
