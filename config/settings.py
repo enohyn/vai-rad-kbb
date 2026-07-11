@@ -55,14 +55,17 @@ SECRET_KEY = env(
 # (Render, Heroku, Docker) where the internal health-checker uses an IP, not
 # the public domain. For a stricter production setup, set ALLOWED_HOSTS in
 # the environment to your exact domain(s), e.g. "api.example.com".
+#
+# On PythonAnywhere, set ALLOWED_HOSTS in .env to your real domain, e.g.
+# ALLOWED_HOSTS=<username>.pythonanywhere.com
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
-# --- DEPLOYMENT HARDENING (Render debugging) ---
-# Override: force-accept ALL hosts. Render's dashboard env vars can be stale
-# or ignored depending on how the service was created. This guarantees the
-# health checker (which uses an internal IP) is never rejected with 400.
-ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["*"]
+# Origins trusted for unsafe (POST/PUT/DELETE) CSRF-protected requests.
+# Defaults to wildcard so containerised hosts (Render, Heroku, Docker) and
+# internal health-checkers (which call via an IP) keep working out of the box.
+# On PythonAnywhere, set this to your real domain in .env, e.g.
+# CSRF_TRUSTED_ORIGINS=https://<username>.pythonanywhere.com
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["*"])
 
 # Print actual runtime values to Render logs so we can verify what Django
 # actually loaded. Helps diagnose any remaining 400 issues.
