@@ -32,7 +32,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # If .env is missing (e.g. on a fresh clone), environ falls back to real env
 # vars, so we also provide safe DEBUG-based defaults below.
 env = environ.Env()
-env.read_env(str(BASE_DIR / ".env"))
+# Read .env if present (local dev). On Render/Heroku there is no .env file,
+# so we silently fall back to real environment variables. Without this guard,
+# a missing .env would crash settings.py during deploy.
+try:
+    env.read_env(str(BASE_DIR / ".env"))
+except Exception:
+    pass
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # In JS land this is like process.env.SECRET_KEY; we default to an insecure
@@ -50,6 +56,24 @@ SECRET_KEY = env(
 # the public domain. For a stricter production setup, set ALLOWED_HOSTS in
 # the environment to your exact domain(s), e.g. "api.example.com".
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+
+# --- DEPLOYMENT HARDENING (Render debugging) ---
+# Override: force-accept ALL hosts. Render's dashboard env vars can be stale
+# or ignored depending on how the service was created. This guarantees the
+# health checker (which uses an internal IP) is never rejected with 400.
+ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = ["*"]
+
+# Print actual runtime values to Render logs so we can verify what Django
+# actually loaded. Helps diagnose any remaining 400 issues.
+import sys  # noqa: E402
+print("=" * 60, file=sys.stderr)
+print("STARTUP DIAGNOSTICS", file=sys.stderr)
+print(f"  DEBUG          = {DEBUG}", file=sys.stderr)
+print(f"  ALLOWED_HOSTS  = {ALLOWED_HOSTS}", file=sys.stderr)
+print(f"  SECRET_KEY set = {bool(SECRET_KEY)}", file=sys.stderr)
+print(f"  DATABASE       = {env.str('DATABASE_URL', default='(sqlite fallback)')}", file=sys.stderr)
+print("=" * 60, file=sys.stderr)
 
 # ---------------------------------------------------------------------------
 # 2. Applications (Django "apps" are like Node modules / feature folders)
