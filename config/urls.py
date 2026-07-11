@@ -11,9 +11,19 @@ Admin lives at ``/admin/`` for debugging data.
 """
 
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path
 
 urlpatterns = [
+    # Lightweight health-check endpoint for load balancers (Render, Heroku, etc.).
+    # Returns 200 OK instantly — no DB query, no auth. Used by render.yaml
+    # healthCheckPath so the platform knows the service is alive.
+    path(
+        "api/health/",
+        lambda request: JsonResponse({"status": "ok"}),
+        name="health",
+    ),
+
     # Django admin (built-in dashboard). Useful for quick data inspection.
     path("admin/", admin.site.urls),
 
